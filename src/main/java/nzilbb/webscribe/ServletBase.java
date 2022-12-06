@@ -58,4 +58,20 @@ public class ServletBase extends HttpServlet {
       .close();
   } // end of returnMessage()
 
+  /**
+   * Writes a JSON-formatted via the given response.
+   * @param message The message to return.
+   * @param response The response to write to.
+   * @throws IOException
+   */
+  protected void returnResult(String message, String result, HttpServletResponse response)
+    throws IOException {
+    Json.createGenerator(response.getWriter())
+      .writeStartObject()
+      .write("message", message)
+      .write("result", result)
+      .writeEnd()
+      .close();
+  } // end of returnMessage()
+
 } // end of class ServletBase

@@ -21,16 +21,22 @@
 //
 package nzilbb.webscribe;
 
-import java.util.List;
-import java.io.IOException;
 import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.ServletException;
+import nzilbb.ag.Constants;
+import nzilbb.ag.Layer;
+import nzilbb.ag.Schema;
+import nzilbb.ag.automation.Annotator;
+import nzilbb.ag.automation.Transcriber;
+import nzilbb.ag.automation.util.AnnotatorDescriptor;
 import org.apache.commons.fileupload.*;
-import org.apache.commons.fileupload.servlet.*;
 import org.apache.commons.fileupload.disk.*;
+import org.apache.commons.fileupload.servlet.*;
 
 /**
  * Serlvet for receiving a recording and starting transcription.
@@ -60,9 +66,11 @@ public class StartTranscription extends ServletBase {
           log("File: " + item.getName());
           
           // save file
-          wav = File.createTempFile(item.getName(), ".wav");
+          File tempDir = File.createTempFile("webscriber", item.getName());
+          tempDir.deleteOnExit();
+          tempDir.delete();
+          wav = new File(tempDir, item.getName());
           wav.deleteOnExit();
-          wav.delete(); // (so item.write doesn't complain)
           item.write(wav);
           log("Saved: " + wav.getPath());
           break; // only one file at a time
@@ -73,8 +81,9 @@ public class StartTranscription extends ServletBase {
         response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         returnMessage("No wav file found.", response);
       } else {
-        // TODO start transcription task
-        returnMessage("Uploaded " + wav.getName(), response);
+        // start transcription task
+        Job job = startTranscriptionJob(wav);
+        returnResult("Uploaded " + wav.getName(), ""+job.getId(), response);
       }
     } catch (Exception x) {
       response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -82,4 +91,59 @@ public class StartTranscription extends ServletBase {
       returnMessage("ERROR: " + x, response);
     }
   } // doPost
+  
+  /**
+   * Starts a job transcribing the given recording.
+   * @param wav
+   * @return The job thread.
+   */
+  public Job startTranscriptionJob(File wav) throws Exception {
+    
+    // create and configure the transcriber...
+
+    // the transcriber implementation is the first jar in the transcriber directory
+    File transcriberDir = new File(getServletContext().getRealPath("transcriber"));
+    File[] transcribers = transcriberDir.listFiles((File dir, String name)->{
+        return name.endsWith(".jar");
+      });
+    if (transcribers.length == 0) {
+      throw new Exception("There are no transcribers in " + transcriberDir.getPath());
+    }
+    File jar = transcribers[0];
+    AnnotatorDescriptor descriptor = new AnnotatorDescriptor(jar);
+    Annotator annotator = descriptor.getInstance();
+    if (!(annotator instanceof Transcriber)) {
+      throw new Exception("Annotator: " + jar.getName() + " is not a transcriber");
+    }
+    Transcriber transcriber = (Transcriber)annotator;
+
+    // give the transcriber the resources it needs...
+    
+    transcriber.setSchema(
+      new Schema(
+        "who", "turn", "utterance", "word",
+        new Layer("who", "Participants").setAlignment(Constants.ALIGNMENT_NONE)
+        .setPeers(true).setPeersOverlap(true).setSaturated(true),
+        new Layer("turn", "Speaker turns").setAlignment(Constants.ALIGNMENT_INTERVAL)
+        .setPeers(true).setPeersOverlap(false).setSaturated(false)
+        .setParentId("who").setParentIncludes(true),
+        new Layer("utterance", "Utterances").setAlignment(Constants.ALIGNMENT_INTERVAL)
+        .setPeers(true).setPeersOverlap(false).setSaturated(true)
+        .setParentId("turn").setParentIncludes(true),
+        new Layer("word", "Words").setAlignment(Constants.ALIGNMENT_INTERVAL)
+        .setPeers(true).setPeersOverlap(false).setSaturated(false)
+        .setParentId("turn").setParentIncludes(true)));
+    
+    File workingDir = new File(transcriberDir, transcriber.getAnnotatorId());
+    if (!workingDir.exists()) workingDir.mkdir();
+    transcriber.setWorkingDirectory(workingDir);      
+    transcriber.getStatusObservers().add(s->log(s));
+
+    Job job = new Job()
+      .setTranscriber(transcriber)
+      .setWav(wav);
+    job.start();
+    return job;
+  } // end of startTranscriptionJob()
+
 } // end of class StartTranscription
