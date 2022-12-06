@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+    <head>
+      <title>Webscribe</title>
+      <link rel="shortcut icon" href="logo.svg" />
+      <link rel="stylesheet" href="index.css" type="text/css" />
+    </head>
+    <body>
+      <h1>Webscribe</h1>
+      <div id="fileChooser"
+           title="Select a recording .wav file to upload">
+        <label for="file">Recording:</label>
+        <input id="file" type="file">
+      </div>
+      <div id="uploadProgress" style="display: none;">
+        <progress id="progress"></progress>
+        <div id="uploadResult"></div>
+      </div>
+      <script src="index.js" type="text/javascript"></script>
+    </body>
+</html>
