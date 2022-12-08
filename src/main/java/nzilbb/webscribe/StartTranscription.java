@@ -24,6 +24,7 @@ package nzilbb.webscribe;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import javax.json.Json;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -83,7 +84,16 @@ public class StartTranscription extends ServletBase {
       } else {
         // start transcription task
         Job job = startTranscriptionJob(wav);
-        returnResult("Uploaded " + wav.getName(), ""+job.getId(), response);
+        response.setContentType("application/json;charset=UTF-8");
+        Json.createGenerator(response.getWriter())
+          .writeStartObject()
+          .write("message", "Uploaded " + wav.getName())
+          .write("jobId", ""+job.getId())
+          .write("transcriber", job.getTranscriber().getAnnotatorId())
+          .write("version", job.getTranscriber().getVersion())
+          .write("wav", job.getWav().getName())
+          .writeEnd()
+          .close();
       }
     } catch (Exception x) {
       response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);

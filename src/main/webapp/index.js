@@ -1,3 +1,46 @@
+function listFormats() {
+    const formats = document.getElementById("formats");
+    const request = new XMLHttpRequest();
+    request.open("GET", "listformats");
+    request.setRequestHeader("Accept", "application/json");
+    request.addEventListener("load", function(e) {
+        console.log("statusResult " + this.responseText);
+        const response = JSON.parse(this.responseText);
+        if (this.status == 200) {
+            // response is an array of serializers
+            let firstElement = true;
+            for (let format of response) {
+                const div = document.createElement("div");
+                formats.appendChild(div);
+                const label = document.createElement("label");
+                div.appendChild(label);
+                const radio = document.createElement("input");
+                radio.name = "mimeType";
+                radio.type = "radio";
+                radio.className = "format";
+                radio.value = format.mimeType;
+                if (firstElement) {
+                    radio.checked = true;
+                    firstElement = false;
+                }
+                label.appendChild(radio);
+                const img = document.createElement("img");
+                img.src = `formatter/${format.icon}`;
+                label.appendChild(img);
+                label.appendChild(document.createTextNode(format.name));
+            }
+        } else {
+            formats.innerHTML = `<p class="error">${response.message}</p>`;
+        }
+    }, false);
+    request.addEventListener("error", function(e) {
+        const result = this.responseText;
+        console.log("GET jobstatus failed " + result);
+        formats.innerHTML = `<p class='error'>${result}</p>`;
+    }, false);
+    request.send();
+}
+
 var jobId = null;
 function selectFile() {
     const input = document.getElementById("file");
@@ -23,7 +66,7 @@ function selectFile() {
         const response = JSON.parse(this.responseText);
         if (this.status == 200) {
             document.getElementById("uploadResult").innerHTML = `<p>${response.message}</p>`;
-            jobId = response.result;
+            jobId = response.jobId;
             monitorJob();
         } else {
             document.getElementById("uploadResult").innerHTML
@@ -67,8 +110,13 @@ function monitorJob() {
             jobProgress.title = `${jobProgress.value}%`;
             document.getElementById("jobStatus").innerHTML = `<p>${response.message}</p>`;
 
-            // check back in a second
-            window.setTimeout(monitorJob, 1000);
+            if (response.running) {
+                // check back in a second
+                window.setTimeout(monitorJob, 1000);
+            } else {
+                document.getElementById("jobStatus").innerHTML = `<p>Transcription finished.</p>`;
+                downloadTranscript();
+            }
         } else {
             document.getElementById("jobStatus").innerHTML
                 = `<p class="error">${response.message}</p>`;
@@ -82,4 +130,23 @@ function monitorJob() {
     request.send();
 }
 
+function downloadTranscript() {
+    // reset file chooser
+    document.getElementById("fileChooser").style.display = "";
+    document.getElementById("file").value = null;
+    
+    // get selected mimeType
+    let mimeType = "application/json";
+    for (let radio of document.getElementsByClassName("format")) {
+        if (radio.checked) {
+            mimeType = radio.value;
+            break;
+        }
+    } // next format
+
+    // get file
+    window.location = "transcript/"+jobId+"?format="+encodeURIComponent(mimeType);
+}
+
 document.getElementById("file").onchange = selectFile;
+listFormats();

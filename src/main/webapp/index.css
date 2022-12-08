@@ -16,3 +16,7 @@ table { margin: auto; }
 .warning { color: darkorange; font-weight: bold;}
 em { font-weight: bold; font-style: normal;}
 progress { width: 100%; }
+#formats img {
+    height: 12pt;
+    padding-right: 3pt;
+}

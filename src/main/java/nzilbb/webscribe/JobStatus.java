@@ -40,7 +40,7 @@ import org.apache.commons.fileupload.disk.*;
 import org.apache.commons.fileupload.servlet.*;
 
 /**
- * Serlvet for receiving a recording and starting transcription.
+ * Returns the status of a transcription job.
  * @author Robert Fromont robert@fromont.net.nz
  */
 @WebServlet("/jobstatus/*")
@@ -77,6 +77,7 @@ public class JobStatus extends ServletBase {
             .write("message", job.getTranscriber().getStatus())
             .write("wav", job.getWav().getName())
             .write("percentComplete", job.getTranscriber().getPercentComplete())
+            .write("running", job.getTranscriber().getRunning())
             .writeEnd()
             .close();
         }
