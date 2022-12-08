@@ -26,7 +26,6 @@ import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 import javax.json.stream.JsonGenerator;
-import javax.json.stream.JsonGeneratorFactory;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -51,6 +50,7 @@ public class ServletBase extends HttpServlet {
    * @throws IOException
    */
   protected void returnMessage(String message, HttpServletResponse response) throws IOException {
+    response.setContentType("application/json;charset=UTF-8");
     Json.createGenerator(response.getWriter())
       .writeStartObject()
       .write("message", message)
@@ -66,6 +66,7 @@ public class ServletBase extends HttpServlet {
    */
   protected void returnResult(String message, String result, HttpServletResponse response)
     throws IOException {
+    response.setContentType("application/json;charset=UTF-8");
     Json.createGenerator(response.getWriter())
       .writeStartObject()
       .write("message", message)

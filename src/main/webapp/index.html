@@ -13,8 +13,12 @@
         <input id="file" type="file">
       </div>
       <div id="uploadProgress" style="display: none;">
-        <progress id="progress"></progress>
+        <progress id="uploadProgressBar"></progress>
         <div id="uploadResult"></div>
+      </div>
+      <div id="jobProgress" style="display: none;">
+        <progress id="jobProgressBar" max="100"></progress>
+        <div id="jobStatus"></div>
       </div>
       <script src="index.js" type="text/javascript"></script>
     </body>

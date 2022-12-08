@@ -62,7 +62,7 @@ public class StartTranscription extends ServletBase {
       List<FileItem> items = upload.parseRequest(request);
       for (FileItem item : items) {
         if (!item.isFormField()
-            && item.getName() != null && item.getName().endsWith(".wav")) { // it's a wav file
+            && item.getName() != null && item.getName().toLowerCase().endsWith(".wav")) {
           log("File: " + item.getName());
           
           // save file

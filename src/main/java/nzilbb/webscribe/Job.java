@@ -38,7 +38,25 @@ import nzilbb.util.IO;
  * @author Robert Fromont robert@fromont.net.nz
  */
 public class Job extends Thread {
+
+  protected static final ThreadGroup jobThreadGroup = new ThreadGroup("nzilbb.webscribe.Job");
   
+  /**
+   * Finds a job given its ID.
+   * @param lThreadId the Job's ID
+   * @return The identified Job, or null if it can't be found.
+   */
+  public static Job FindJob(long id) {
+    Thread[] threads = new Thread[jobThreadGroup.activeCount()];
+    jobThreadGroup.enumerate(threads);
+    for (Thread thread : threads) {
+      if (thread != null && thread.getId() == id) {
+        return (Job)thread;
+      }
+    } // next thread
+    return null;
+  }
+
   /**
    * The speech recording to transcribe.
    * @see #getWav()
@@ -54,7 +72,11 @@ public class Job extends Thread {
    * Setter for {@link #wav}: The speech recording to transcribe.
    * @param newWav The speech recording to transcribe.
    */
-  public Job setWav(File newWav) { wav = newWav; return this; }
+  public Job setWav(File newWav) {
+    wav = newWav;
+    // name the thread after the wav
+    setName(wav.getName());
+    return this; }
   
   /**
    * The transcriber implementation to use for transcription.
@@ -94,6 +116,7 @@ public class Job extends Thread {
    * Default constructor.
    */
   public Job() {
+    super(jobThreadGroup, "");
   } // end of constructor
 
   public void run() {
@@ -107,6 +130,10 @@ public class Job extends Thread {
     } catch(Exception exception) {
       System.err.println("Error transcribing " + wav.getName() + ": " + exception);
       exception.printStackTrace(System.err);
-    }    
+    }
+    try { // give any observers a chance to get the status before we finish
+      Thread.sleep(10000);
+    } catch (Exception x) {
+    }
   } // run
 } // end of class Job
