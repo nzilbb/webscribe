@@ -84,6 +84,28 @@
 
   <build>
     <finalName>webscribe</finalName>
+    <plugins>
+      <plugin>
+        <artifactId>maven-war-plugin</artifactId>
+        <configuration>
+          <webResources>
+            <resource>
+              <!-- Put upgrade.class in the root directory so that it can be executed by java -->
+              <directory>target/classes</directory>
+              <includes>
+                <include>nzilbb/webscribe/Upgrade.class</include>
+              </includes>
+            </resource>
+          </webResources>
+          <archive>
+            <manifest>
+              <mainClass>nzilbb.webscribe.Upgrade</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
+    
     <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
       <plugins>
         <plugin>
