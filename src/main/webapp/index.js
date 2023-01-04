@@ -107,8 +107,11 @@ function monitorJob() {
         const response = JSON.parse(this.responseText);
         if (this.status == 200) {
             jobProgress.value = response.percentComplete;
-            jobProgress.title = `${jobProgress.value}%`;
-            document.getElementById("jobStatus").innerHTML = `<p>${response.message}</p>`;
+            jobProgress.title = `${jobProgress.value}%`;            
+            document.getElementById("jobStatus").innerHTML
+                = (/%/.test(response.message)? // percent progress (e.g. from download of models)
+                   `<pre>${response.message}</pre>`: // use <pre> for correct spacing of text 
+                   `<p>${response.message}</p>`); // just a message so no particular formatting
 
             if (response.running) {
                 // check back in a second
