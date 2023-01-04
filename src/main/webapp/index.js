@@ -104,30 +104,40 @@ function monitorJob() {
     request.setRequestHeader("Accept", "application/json");
     request.addEventListener("load", function(e) {
         console.log("statusResult " + this.responseText);
-        const response = JSON.parse(this.responseText);
-        if (this.status == 200) {
-            jobProgress.value = response.percentComplete;
-            jobProgress.title = `${jobProgress.value}%`;            
-            document.getElementById("jobStatus").innerHTML
-                = (/%/.test(response.message)? // percent progress (e.g. from download of models)
-                   `<pre>${response.message}</pre>`: // use <pre> for correct spacing of text 
-                   `<p>${response.message}</p>`); // just a message so no particular formatting
-
-            if (response.running) {
-                // check back in a second
-                window.setTimeout(monitorJob, 1000);
+        try {
+            const response = JSON.parse(this.responseText);
+            if (this.status == 200) {
+                jobProgress.value = response.percentComplete;
+                jobProgress.title = `${jobProgress.value}%`;            
+                document.getElementById("jobStatus").innerHTML
+                    = (/%/.test(response.message)? // percent progress (e.g. from download of models)
+                       `<pre>${response.message}</pre>`: // use <pre> for correct spacing of text 
+                       `<p>${response.message}</p>`); // just a message so no particular formatting
+                
+                if (response.running) {
+                    document.getElementById("jobRunning").style.display = "";
+                    // check back in a second
+                    window.setTimeout(monitorJob, 1000);
+                } else {
+                    document.getElementById("jobRunning").style.display = "none";
+                    document.getElementById("jobStatus").innerHTML = `<p>Transcription finished.</p>`;
+                    downloadTranscript();
+                }
             } else {
-                document.getElementById("jobStatus").innerHTML = `<p>Transcription finished.</p>`;
-                downloadTranscript();
+                document.getElementById("jobRunning").style.display = "none";
+                document.getElementById("jobStatus").innerHTML
+                    = `<p class="error">${response.message}</p>`;
             }
-        } else {
+        } catch (x) {
+            document.getElementById("jobRunning").style.display = "none";
             document.getElementById("jobStatus").innerHTML
-                = `<p class="error">${response.message}</p>`;
+                = `<p class="error">Status: ${this.status}</p>${this.responseText}`;
         }
     }, false);
     request.addEventListener("error", function(e) {
         const result = this.responseText;
         console.log("GET jobstatus failed " + result);
+        document.getElementById("jobRunning").style.display = "none";
         document.getElementById("jobStatus").innerHTML = `<p class='error'>${result}</p>`;
     }, false);
     request.send();
