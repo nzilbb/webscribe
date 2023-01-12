@@ -82,7 +82,7 @@ function selectFile() {
         document.getElementById("uploadResult").innerHTML
             = `<p class='error'>${result}</p>`;
     }, false);
-    request.addEventListener("progress", function(e) {
+    request.upload.addEventListener("progress", function(e) {
         console.log("uploadProgress " + e.loaded);
         if (e.lengthComputable) {
             uploadProgress.max = e.total;
