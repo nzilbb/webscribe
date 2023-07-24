@@ -35,7 +35,7 @@ Prerequisites include:
 - Apache Tomcat (`sudo yum install tomcat`)
 
 1. Install Whisper on the server.
-  For up-tp-date instructions, see the [Whisper site](https://github.com/openai/whisper#setup)
+  For up-to-date instructions, see the [Whisper site](https://github.com/openai/whisper#setup)
   but the following should work:
   `sudo pip3 install git+https://github.com/openai/whisper.git`
 2. Copy *webscribe.war* to the Tomcat webapps directory.

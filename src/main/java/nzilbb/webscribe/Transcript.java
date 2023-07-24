@@ -95,12 +95,15 @@ public class Transcript extends ServletBase {
               
               // configure serializer
               ParameterSet configuration = new ParameterSet();
-              // default values
+              // get default value suggestions
+              configuration = serializer.configure(configuration, transcript.getSchema());
+              // use default values
               serializer.configure(configuration, transcript.getSchema());
               
               // serialize the graph
               
-              String[] layerIds = { transcript.getSchema().getUtteranceLayerId() };//serializer.getRequiredLayers();
+              String[] layerIds = {
+                transcript.getSchema().getUtteranceLayerId(), "scribe", "date" };
               final Vector<NamedStream> files = new Vector<NamedStream>();
               serializer.serialize(
                 nzilbb.ag.serialize.util.Utility.OneGraphSpliterator(transcript), layerIds,

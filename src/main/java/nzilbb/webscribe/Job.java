@@ -22,6 +22,9 @@
 package nzilbb.webscribe;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.TimeZone;
+import nzilbb.ag.Annotation;
 import nzilbb.ag.Constants;
 import nzilbb.ag.Graph;
 import nzilbb.ag.Layer;
@@ -30,6 +33,7 @@ import nzilbb.ag.automation.Annotator;
 import nzilbb.ag.automation.InvalidConfigurationException;
 import nzilbb.ag.automation.Transcriber;
 import nzilbb.ag.serialize.util.Utility;
+import nzilbb.ag.util.FileMediaProvider;
 import nzilbb.configure.ParameterSet;
 import nzilbb.util.IO;
 
@@ -37,7 +41,7 @@ import nzilbb.util.IO;
  * Ongoing transcription job.
  * @author Robert Fromont robert@fromont.net.nz
  */
-public class Job extends Thread {
+public class Job extends Thread { // TODO periodically purge finished jobs
 
   protected static final ThreadGroup jobThreadGroup = new ThreadGroup("nzilbb.webscribe.Job");
   
@@ -111,22 +115,44 @@ public class Job extends Thread {
    * @param newTranscript The resulting transcript.
    */
   public Job setTranscript(Graph newTranscript) { transcript = newTranscript; return this; }
+
+  private SimpleDateFormat utcIsoTime;
   
   /**
    * Default constructor.
    */
   public Job() {
     super(jobThreadGroup, "");
+
+    TimeZone tz = TimeZone.getTimeZone("UTC");
+    utcIsoTime = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
+    utcIsoTime.setTimeZone(tz);
+
   } // end of constructor
 
   public void run() {
     Graph transcript = new Graph();
     transcript.setId(IO.WithoutExtension(wav));
     transcript.setSchema((Schema)transcriber.getSchema().clone());
+    // ensure the serializer can know the media file name
+    transcript.setMediaProvider(new FileMediaProvider().withFile(getWav()));
+    // include transcriber name tag
+    String annotator = getTranscriber().getAnnotatorId() + " v" + getTranscriber().getVersion();
+    transcript.createTag(transcript, "scribe", annotator)
+      .setConfidence(Constants.CONFIDENCE_AUTOMATIC);
+    // include transcription date tag
+    transcript.createTag(transcript, "date", utcIsoTime.format(new java.util.Date()))
+      .setConfidence(Constants.CONFIDENCE_AUTOMATIC);
     try {      
       // transcribe the audio
       getTranscriber().transcribe(getWav(), transcript);
       setTranscript(transcript);
+      // tag all anotations as annotated by the transcriber
+      for (Annotation annotation : transcript.getAnnotationsById().values()) {
+        annotation.setAnnotator(annotator);
+      }
+      // TODO delete the wav file!
+      // TODO email the human
     } catch(Exception exception) {
       System.err.println("Error transcribing " + wav.getName() + ": " + exception);
       exception.printStackTrace(System.err);

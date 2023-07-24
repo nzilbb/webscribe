@@ -76,6 +76,7 @@ public class StartTranscription extends ServletBase {
           log("Saved: " + wav.getPath());
           break; // only one file at a time
         } // .wav file
+        // TODO get email address
       } // next item
       
       if (wav == null) {
@@ -107,7 +108,7 @@ public class StartTranscription extends ServletBase {
    * @param wav
    * @return The job thread.
    */
-  public Job startTranscriptionJob(File wav) throws Exception {
+  public Job startTranscriptionJob(File wav) throws Exception { // TODO email parameter
     
     // create and configure the transcriber...
 
@@ -132,6 +133,10 @@ public class StartTranscription extends ServletBase {
     transcriber.setSchema(
       new Schema(
         "who", "turn", "utterance", "word",
+        new Layer("scribe", "Transcriber").setAlignment(Constants.ALIGNMENT_NONE)
+        .setPeers(false).setPeersOverlap(false).setSaturated(true),
+        new Layer("date", "Transcription date").setAlignment(Constants.ALIGNMENT_NONE)
+        .setPeers(false).setPeersOverlap(false).setSaturated(true),
         new Layer("who", "Participants").setAlignment(Constants.ALIGNMENT_NONE)
         .setPeers(true).setPeersOverlap(true).setSaturated(true),
         new Layer("turn", "Speaker turns").setAlignment(Constants.ALIGNMENT_INTERVAL)
@@ -151,7 +156,7 @@ public class StartTranscription extends ServletBase {
 
     Job job = new Job()
       .setTranscriber(transcriber)
-      .setWav(wav);
+      .setWav(wav); // TODO set email
     job.start();
     return job;
   } // end of startTranscriptionJob()

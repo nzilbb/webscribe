@@ -109,7 +109,8 @@ public class Upgrade {
        Enumeration<JarEntry> enEntries = jfJar.entries();
        while (enEntries.hasMoreElements()) {
          JarEntry jeEntry = enEntries.nextElement();
-         if (!jeEntry.getName().endsWith("web.xml")) {
+         if (!jeEntry.getName().endsWith("web.xml")
+             && !jeEntry.getName().endsWith("context.xml")) {
            if (!jeEntry.isDirectory()) {			
              File parent = root;
              String sFileName = jeEntry.getName();
