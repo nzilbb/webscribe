@@ -7,6 +7,21 @@
     </head>
     <body>
       <h1>Webscribe</h1>
+      <details><summary>Select a .wav file to transcribe and a transcript format</summary>
+        <ol>
+          <li> Click the *Browse* button and select a .wav file to transcribe. </li>
+          <li> Select the transcript format you want. </li>
+          <li>Wait patiently while the file uploads to the server
+            (there's a progress bar that indicates how much is uploaded so far). </li>
+          <li> Wait patiently while the recording is transcribed
+            (there's a second progress bar that may indicate progress,
+             although generally this stays at 0% for a long time and then is suddenly at 100%).
+            <br> The first time you upload a recording, there is an initial delay while Whisper
+            downloads its models for STT. This is a one-time process, and subsequent recordings
+            don't require this initial delay. </li>
+          <li> Save the resulting transcript. </li>
+        </ol>
+      </details>
       <div id="uploadProgress" style="display: none;">
         <progress id="uploadProgressBar"></progress>
         <div id="uploadResult"></div>

@@ -47,6 +47,10 @@ function selectFile() {
     if (input.files.length == 0) return;
     const file = input.files[0];
     console.log("name " + file.name);
+    if (!/.*\.[wW][aA][vV]$/.test(file.name)) {
+        alert("Please select a .wav file.");
+        return;
+    }
 
     // hide file chooser
     document.getElementById("fileChooser").style.display = "none";
