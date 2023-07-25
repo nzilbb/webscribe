@@ -4,4 +4,26 @@
 
 <web-app>
   <display-name>Webscribe</display-name>
+
+  <!-- The following parameter values must be required to enable sending of emails: -->
+  <context-param>
+    <!-- Email address that messages are sent from -->
+    <param-name>EmailFrom</param-name>
+    <param-value></param-value>
+  </context-param>
+  <context-param>
+    <!-- Host name of the SMTP server -->
+    <param-name>SMTPHost</param-name>
+    <param-value></param-value>
+  </context-param>
+  <context-param>
+    <!-- SMTP username, if required -->
+    <param-name>SMTPUser</param-name>
+    <param-value></param-value>
+  </context-param>
+  <context-param>
+    <!-- SMTP password, if required -->
+    <param-name>SMTPPassword</param-name>
+    <param-value></param-value>
+  </context-param>
 </web-app>

@@ -24,6 +24,7 @@ package nzilbb.webscribe;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
+import java.util.function.Consumer;
 import nzilbb.ag.Annotation;
 import nzilbb.ag.Constants;
 import nzilbb.ag.Graph;
@@ -115,6 +116,33 @@ public class Job extends Thread { // TODO periodically purge finished jobs
    * @param newTranscript The resulting transcript.
    */
   public Job setTranscript(Graph newTranscript) { transcript = newTranscript; return this; }
+  
+  /**
+   * What to do when finished, if anything.
+   * @see #getOnFinished()
+   * @see #setOnFinished(Consumer<Job>)
+   */
+  protected Consumer<Job> onFinished;
+  /**
+   * Getter for {@link #onFinished}: What to do when finished, if anything.
+   * @return What to do when finished, if anything.
+   */
+  public Consumer<Job> getOnFinished() { return onFinished; }
+  /**
+   * Setter for {@link #onFinished}: What to do when finished, if anything.
+   * @param newOnFinished What to do when finished, if anything.
+   */
+  public Job setOnFinished(Consumer<Job> newOnFinished) {
+    onFinished = newOnFinished;
+    // has the transcriber already finished?
+    if (transcriber != null && !transcriber.getRunning()) {
+      try {
+        onFinished.accept(this);
+      } catch(Throwable exception) {
+      }
+    }
+    return this;
+  }
 
   private SimpleDateFormat utcIsoTime;
   
@@ -130,7 +158,7 @@ public class Job extends Thread { // TODO periodically purge finished jobs
 
   } // end of constructor
 
-  public void run() {
+  @Override public void run() {
     Graph transcript = new Graph();
     transcript.setId(IO.WithoutExtension(wav));
     transcript.setSchema((Schema)transcriber.getSchema().clone());
@@ -151,8 +179,17 @@ public class Job extends Thread { // TODO periodically purge finished jobs
       for (Annotation annotation : transcript.getAnnotationsById().values()) {
         annotation.setAnnotator(annotator);
       }
-      // TODO delete the wav file!
-      // TODO email the human
+      // delete the wav file
+      System.err.println("Deleting " + getWav().getPath());
+      getWav().delete();
+      
+      // email the human?
+      if (onFinished != null) {
+        try {
+          onFinished.accept(this);
+        } catch(Throwable exception) {
+        }
+      }
     } catch(Exception exception) {
       System.err.println("Error transcribing " + wav.getName() + ": " + exception);
       exception.printStackTrace(System.err);

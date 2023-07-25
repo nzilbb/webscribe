@@ -72,6 +72,12 @@ function selectFile() {
       document.getElementById("uploadResult").innerHTML = `<p>${response.message}</p>`;
       jobId = response.jobId;
       monitorJob();
+
+      // can they get notification by email?
+      if (response.canSendEmail) {
+        // show email address form
+        document.getElementById("notification").style.display = "";
+      }
     } else {
       document.getElementById("uploadResult").innerHTML
         = `<p class="error">${response.message}</p>`;
@@ -98,6 +104,7 @@ function selectFile() {
   request.send(fd);
 }
 
+let monitorTimer = null;
 function monitorJob() {
   // show upload progress
   document.getElementById("jobProgress").style.display = "";
@@ -121,7 +128,7 @@ function monitorJob() {
         if (response.running) {
           document.getElementById("jobRunning").style.display = "";
           // check back in a second
-          window.setTimeout(monitorJob, 1000);
+          monitorTimer = window.setTimeout(monitorJob, 1000);
         } else {
           document.getElementById("jobRunning").style.display = "none";
           document.getElementById("jobStatus").innerHTML = `<p>Transcription finished.</p>`;
@@ -165,5 +172,70 @@ function downloadTranscript() {
   window.location = "transcript/"+jobId+"?format="+encodeURIComponent(mimeType);
 }
 
+function notify() {
+  if (document.getElementById("email").reportValidity()) {
+    let email = document.getElementById("email").value;
+    // get selected mimeType
+    let mimeType = "application/json";
+    for (let radio of document.getElementsByClassName("format")) {
+      if (radio.checked) {
+        mimeType = radio.value;
+        break;
+      }
+    } // next format
+
+    email = encodeURIComponent(email);
+    mimeType = encodeURIComponent(mimeType);
+    const request = new XMLHttpRequest();
+    request.open("GET", `sendtranscript/${jobId}?email=${email}&format=${mimeType}`);
+    request.setRequestHeader("Accept", "application/json");
+    request.addEventListener("load", function(e) {
+      console.log("sendtranscript " + this.responseText);
+      if (this.status == 200) {
+        try {
+          const response = JSON.parse(this.responseText);
+          jobProgress.value = response.percentComplete;
+          jobProgress.title = `${jobProgress.value}%`;
+
+          // stop monitoring job
+          window.clearTimeout(monitorTimer);
+
+          // notify the user
+          document.getElementById("jobStatus").innerHTML
+            = "<i>You will receive an email with a download link when transcription is finished.</i>";
+
+          // reset the form
+          document.getElementById("fileChooser").style.display = "";
+          document.getElementById("file").value = null;
+          document.getElementById("jobRunning").style.display = "none";
+          document.getElementById("uploadProgress").style.display = "none";
+          document.getElementById("notification").style.display = "none";
+          
+        } catch (x) {
+          document.getElementById("jobRunning").style.display = "none";
+          document.getElementById("jobStatus").innerHTML
+            = `<p class="error">Status: ${this.status}</p>${this.responseText}`;
+        }
+      } else {
+        try {
+          const response = JSON.parse(this.responseText);
+          document.getElementById("jobStatus").innerHTML
+            = `<p class="error">${response.message}</p>`;
+        } catch (x) {
+          document.getElementById("jobStatus").innerHTML
+            = `<p class="error">Status: ${this.status}</p>${this.responseText}`;
+        }
+      }
+    }, false);
+    request.addEventListener("error", function(e) {
+      const result = this.responseText;
+      console.log("GET jobstatus failed " + result);
+      document.getElementById("jobStatus").innerHTML = `<p class='error'>${result}</p>`;
+    }, false);
+    request.send();
+  } // email address was valid as far as the browser is concerned
+}
+
 document.getElementById("file").onchange = selectFile;
+document.getElementById("sendtranscript").onclick = notify;
 listFormats();

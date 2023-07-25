@@ -78,6 +78,13 @@ public class Transcript extends ServletBase {
         if (job == null) {
           response.setStatus(HttpServletResponse.SC_NOT_FOUND);
           returnMessage("Job not found: " + jobId, response);
+        } else if (job.getTranscript() == null) {
+          response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+          if (job.getTranscriber() == null) {
+            returnMessage("No transcript for job " + jobId, response);
+          } else {
+            returnMessage("No transcript: " + job.getTranscriber().getStatus(), response);
+          }
         } else {
 
           String mimeType = request.getParameter("format");
@@ -85,99 +92,24 @@ public class Transcript extends ServletBase {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             returnMessage("No format specified.", response);
           } else {
-            // find serializer
-            GraphSerializer serializer = findSerializer(mimeType);
-            if (serializer == null) {
-              response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-              returnMessage("No formatter found: " + mimeType, response);
-            } else {
-              Graph transcript = job.getTranscript();
-              
-              // configure serializer
-              ParameterSet configuration = new ParameterSet();
-              // get default value suggestions
-              configuration = serializer.configure(configuration, transcript.getSchema());
-              // use default values
-              serializer.configure(configuration, transcript.getSchema());
-              
-              // serialize the graph
-              
-              String[] layerIds = {
-                transcript.getSchema().getUtteranceLayerId(), "scribe", "date" };
-              final Vector<NamedStream> files = new Vector<NamedStream>();
-              serializer.serialize(
-                nzilbb.ag.serialize.util.Utility.OneGraphSpliterator(transcript), layerIds,
-                new Consumer<NamedStream>() {
-                  public void accept(NamedStream stream) {
-                    files.add(stream);
-                  }},
-                new Consumer<String>() {
-                  public void accept(String warning) {
-                    System.out.println("WARNING: " + warning);
-                  }},
-                new Consumer<SerializationException>() {
-                  public void accept(SerializationException exception) {
-                    System.err.println("SerializeFragment error: " + exception);
-                  }       
-                });
-
-              if (files.size() == 0) {
-                response.sendError(HttpServletResponse.SC_NOT_FOUND, "No files were generated");
-              } else if (files.size() == 1) { // one file only
-                // don't zip a single file, just return the file
-                response.setContentType(mimeType);
-                NamedStream stream = files.firstElement();
-                response.addHeader("Content-Disposition", "attachment; filename=" + stream.getName());
-                
-                IO.Pump(stream.getStream(), response.getOutputStream());
-              } else { /// multiple files
+            SerializeService serialization = new SerializeService(getServletContext());
+            try {
+              NamedStream stream = serialization.serialize(job.getTranscript(), mimeType);
+              if (stream.getName().endsWith(".zip")) {
                 response.setContentType("application/zip");
-                response.addHeader(
-                  "Content-Disposition", "attachment; filename="
-                  + IO.SafeFileNameUrl(transcript.getId()) + ".zip");
-                
-                // create a stream to pump from
-                PipedInputStream inStream = new PipedInputStream();
-                final PipedOutputStream outStream = new PipedOutputStream(inStream);
-                
-                // start a new thread to extract the data and stream it back
-                new Thread(new Runnable() {
-                    public void run() {
-                      try {
-                        ZipOutputStream zipOut = new ZipOutputStream(outStream);
-                        
-                        // for each file
-                        for (NamedStream stream : files) {
-                          try {
-                            // create the zip entry
-                            zipOut.putNextEntry(
-                              new ZipEntry(IO.SafeFileNameUrl(stream.getName())));
-                            
-                            IO.Pump(stream.getStream(), zipOut, false);
-                          } catch (ZipException zx) {
-                          } finally {
-                            stream.getStream().close();
-                          }
-                        } // next file
-                        try {
-                          zipOut.close();
-                        } catch(Exception exception) {
-                          System.err.println(
-                            "SerializeGraphs: Cannot close ZIP file: " + exception);
-                        }
-                      } catch(Exception exception) {
-                        System.err.println("SerializeGraphs: open zip stream: " + exception);
-                      }
-                    }
-                  }).start();
-                
-                // send headers immediately, so that the browser shows the 'save' prompt
-                response.getOutputStream().flush();
-                
-                IO.Pump(inStream, response.getOutputStream());
-              } // multiple files
-              
-            } // serializer found
+              } else {
+                response.setContentType(mimeType);
+              }
+              response.addHeader(
+                "Content-Disposition", "attachment; filename=" + stream.getName());
+              // send headers immediately, so that the browser shows the 'save' prompt
+              response.getOutputStream().flush();
+              // send data...
+              IO.Pump(stream.getStream(), response.getOutputStream());
+            } catch (NullPointerException npe) {
+              response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+              returnMessage(""+npe.getMessage(), response);
+            }
           } // mimeType set
         } // job found
       } catch(Exception exception) {

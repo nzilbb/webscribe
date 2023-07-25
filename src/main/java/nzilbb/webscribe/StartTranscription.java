@@ -76,13 +76,20 @@ public class StartTranscription extends ServletBase {
           log("Saved: " + wav.getPath());
           break; // only one file at a time
         } // .wav file
-        // TODO get email address
       } // next item
       
       if (wav == null) {
         response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
         returnMessage("No wav file found.", response);
       } else {
+        // can we send email afterwards?
+        boolean canSendEmail = false;
+        try {
+          new SendEmailService(getServletContext()); // throws NullPointerException if not
+          canSendEmail = true;
+        } catch (Throwable t) {
+        }
+        
         // start transcription task
         Job job = startTranscriptionJob(wav);
         response.setContentType("application/json;charset=UTF-8");
@@ -93,6 +100,7 @@ public class StartTranscription extends ServletBase {
           .write("transcriber", job.getTranscriber().getAnnotatorId())
           .write("version", job.getTranscriber().getVersion())
           .write("wav", job.getWav().getName())
+          .write("canSendEmail", canSendEmail)
           .writeEnd()
           .close();
       }
